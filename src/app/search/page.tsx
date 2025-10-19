@@ -119,7 +119,11 @@ export default function DiagnosePage() {
               <h2 className="font-bold text-lg text-blue-700">{grant.title}</h2>
               <p className="text-sm text-gray-600 mb-2">{grant.description}</p>
               <p className="text-sm text-gray-700">
-                <strong>対象地域：</strong> {grant.target_area.join("・")}
+                <strong>対象地域：</strong> {
+                  grant.area_prefecture === "全国" 
+                    ? "全国" 
+                    : [grant.area_prefecture, grant.area_city].filter(Boolean).join("・")
+                }
               </p>
               <p className="text-sm text-gray-700">
                 <strong>最大金額：</strong>{" "}
