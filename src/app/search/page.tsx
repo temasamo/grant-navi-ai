@@ -34,7 +34,8 @@ export default function DiagnosePage() {
     // 山形県内の10市を追加
     const yamagataCities = [
       "山形市", "米沢市", "鶴岡市", "酒田市", "新庄市",
-      "寒河江市", "上山市", "村山市", "長井市", "天童市"
+      "寒河江市", "上山市", "村山市", "長井市", "天童市",
+      "東根市", "尾花沢市"
     ];
     yamagataCities.forEach(city => cities.add(city));
 
