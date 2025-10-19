@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 type Grant = {
   id: number;
@@ -22,6 +22,22 @@ export default function DiagnosePage() {
   const [results, setResults] = useState<Grant[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  // 地域オプションを動的に生成
+  const [prefectureOptions, cityOptions] = useMemo(() => {
+    const prefectures = new Set<string>();
+    const cities = new Set<string>();
+
+    results.forEach(g => {
+      if (g.area_prefecture) prefectures.add(g.area_prefecture);
+      if (g.area_city) cities.add(g.area_city);
+    });
+
+    return [
+      Array.from(prefectures).sort(),
+      Array.from(cities).sort()
+    ];
+  }, [results]);
 
   const handleSearch = async () => {
     setLoading(true);
@@ -68,18 +84,14 @@ export default function DiagnosePage() {
             onChange={(e) => setArea(e.target.value)}
           >
             <optgroup label="都道府県">
-              <option>山形県</option>
-              <option>東京都</option>
-              <option>北海道</option>
-              <option>京都府</option>
-              <option>沖縄県</option>
+              {prefectureOptions.map((p, i) => (
+                <option key={`pref-${i}`} value={p}>{p}</option>
+              ))}
             </optgroup>
             <optgroup label="市町村">
-              <option>山形市</option>
-              <option>渋谷区</option>
-              <option>札幌市</option>
-              <option>京都市</option>
-              <option>那覇市</option>
+              {cityOptions.map((c, i) => (
+                <option key={`city-${i}`} value={c}>{c}</option>
+              ))}
             </optgroup>
           </select>
         </div>
