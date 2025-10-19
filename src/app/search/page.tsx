@@ -7,11 +7,12 @@ type Grant = {
   type: string;
   title: string;
   description: string;
-  target_area: string[];
-  target_industry: string;
-  max_amount: number | null;
+  area_prefecture: string | null;
+  area_city: string | null;
+  industry: string;
+  max_amount: string | null;
   subsidy_rate: string | null;
-  authority: string | null;
+  organization: string | null;
   source_url: string | null;
 };
 
