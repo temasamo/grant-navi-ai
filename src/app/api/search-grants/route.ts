@@ -32,7 +32,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // データ取得
+    // データ取得（全国も含めて取得）
     const { data, error } = await supabase
       .from("grants")
       .select("*")
@@ -51,7 +51,19 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json({ results: data }, { status: 200 });
+    // 優先順位付け
+    const ranked = data.map((item) => {
+      let priority = 0;
+      if (item.area_city === area) priority = 3;
+      else if (item.area_prefecture === area) priority = 2;
+      else if (item.area_prefecture === "全国") priority = 1;
+      return { ...item, priority };
+    });
+
+    // 並び替え（priority降順）
+    const sorted = ranked.sort((a, b) => b.priority - a.priority);
+
+    return NextResponse.json({ results: sorted }, { status: 200 });
   } catch (err) {
     console.error("Unexpected error:", err);
     return NextResponse.json({ error: "サーバーエラー" }, { status: 500 });
