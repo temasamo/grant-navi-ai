@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// 環境変数の存在チェック
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error("Missing Supabase environment variables");
+}
+
+const supabase = supabaseUrl && supabaseKey 
+  ? createClient(supabaseUrl, supabaseKey)
+  : null;
 
 export async function POST(req: Request) {
   try {
@@ -14,6 +21,14 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "エリアと業種の指定が必要です。" },
         { status: 400 }
+      );
+    }
+
+    // Supabaseクライアントの存在チェック
+    if (!supabase) {
+      return NextResponse.json(
+        { error: "データベース接続が設定されていません。" },
+        { status: 500 }
       );
     }
 
