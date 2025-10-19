@@ -134,7 +134,7 @@ export default function DiagnosePage() {
                 <strong>補助率：</strong> {grant.subsidy_rate ?? "―"}
               </p>
               <p className="text-sm text-gray-700">
-                <strong>実施機関：</strong> {grant.authority ?? "―"}
+                <strong>実施機関：</strong> {grant.organization ?? "―"}
               </p>
               {grant.source_url && (
                 <a
