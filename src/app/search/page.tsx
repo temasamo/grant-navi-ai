@@ -28,6 +28,10 @@ export default function DiagnosePage() {
     const prefectures = new Set<string>();
     const cities = new Set<string>();
 
+    // デフォルトの地域を追加
+    prefectures.add("山形県");
+    cities.add("山形市");
+
     results.forEach(g => {
       if (g.area_prefecture) prefectures.add(g.area_prefecture);
       if (g.area_city) cities.add(g.area_city);
