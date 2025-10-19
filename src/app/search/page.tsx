@@ -66,11 +66,20 @@ export default function DiagnosePage() {
             value={area}
             onChange={(e) => setArea(e.target.value)}
           >
-            <option>山形県</option>
-            <option>東京都</option>
-            <option>北海道</option>
-            <option>京都府</option>
-            <option>沖縄県</option>
+            <optgroup label="都道府県">
+              <option>山形県</option>
+              <option>東京都</option>
+              <option>北海道</option>
+              <option>京都府</option>
+              <option>沖縄県</option>
+            </optgroup>
+            <optgroup label="市町村">
+              <option>山形市</option>
+              <option>渋谷区</option>
+              <option>札幌市</option>
+              <option>京都市</option>
+              <option>那覇市</option>
+            </optgroup>
           </select>
         </div>
 
