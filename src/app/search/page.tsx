@@ -52,8 +52,17 @@ export default function DiagnosePage() {
     });
     console.log('cities size after adding results:', cities.size);
 
-    const sortedPrefectures = Array.from(prefectures).sort((a, b) => a.localeCompare(b, 'ja'));
-    const sortedCities = Array.from(cities).sort((a, b) => a.localeCompare(b, 'ja'));
+    // 日本語の五十音順ソート（より確実な方法）
+    const japaneseSort = (a: string, b: string) => {
+      return a.localeCompare(b, 'ja', { 
+        numeric: true, 
+        sensitivity: 'base',
+        caseFirst: 'lower'
+      });
+    };
+    
+    const sortedPrefectures = Array.from(prefectures).sort(japaneseSort);
+    const sortedCities = Array.from(cities).sort(japaneseSort);
     
     // デバッグ用ログ
     console.log('Sorted cities:', sortedCities.slice(0, 10)); // 最初の10件を表示
