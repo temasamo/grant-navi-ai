@@ -39,13 +39,18 @@ export default function DiagnosePage() {
       "南陽市", "西川町", "飯豊町", "山形市", "山辺町", "鮭川村", "庄内町", 
       "舟形町", "真室川町", "村山市", "米沢市", "遊佐町", "酒田市", "鶴岡市"
     ];
+    
+    console.log('yamagataCities length:', yamagataCities.length);
     yamagataCities.forEach(city => cities.add(city));
+    console.log('cities size after adding yamagataCities:', cities.size);
 
     // 検索結果からも地域を追加（五十音順を維持するため、追加後にソート）
+    console.log('results length:', results.length);
     results.forEach(g => {
       if (g.area_prefecture) prefectures.add(g.area_prefecture);
       if (g.area_city) cities.add(g.area_city);
     });
+    console.log('cities size after adding results:', cities.size);
 
     const sortedPrefectures = Array.from(prefectures).sort((a, b) => a.localeCompare(b, 'ja'));
     const sortedCities = Array.from(cities).sort((a, b) => a.localeCompare(b, 'ja'));
