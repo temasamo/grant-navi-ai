@@ -47,8 +47,8 @@ export default function DiagnosePage() {
     });
 
     return [
-      Array.from(prefectures).sort(),
-      Array.from(cities).sort()
+      Array.from(prefectures).sort((a, b) => a.localeCompare(b, 'ja')),
+      Array.from(cities).sort((a, b) => a.localeCompare(b, 'ja'))
     ];
   }, [results]);
 
