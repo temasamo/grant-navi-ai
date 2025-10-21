@@ -1,0 +1,5 @@
+type,title,description,organization,level,area_prefecture,area_city,industry,target_type,max_amount,subsidy_rate,source_url
+助成金,サイト閲覧支援ツール起動,厚生労働省公式サイトより取得,厚生労働省,national,全国,,旅館業,法人,,,https://www.mhlw.go.jpjavascript:ptspkLoader(
+助成金,職場における子育て支援,厚生労働省公式サイトより取得,厚生労働省,national,全国,,旅館業,法人,,,https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/kodomo/shokuba_kosodate/index.html
+助成金,若者の就職支援,厚生労働省公式サイトより取得,厚生労働省,national,全国,,旅館業,法人,,,https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/koyou/jakunen/index.html
+助成金,各種助成金・奨励金等の制度,厚生労働省公式サイトより取得,厚生労働省,national,全国,,旅館業,法人,,,https://www.mhlw.go.jp/seisakunitsuite/joseikin_shoureikin/index.html
