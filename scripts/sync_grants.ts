@@ -122,14 +122,14 @@ async function syncGrants() {
 // メイン実行
 async function main() {
   console.log("🚀 Supabase同期スクリプト開始");
-  console.log("=" * 50);
+  console.log("=".repeat(50));
   
   try {
     await syncGrants();
-    console.log("=" * 50);
+    console.log("=".repeat(50));
     console.log("🎉 同期処理が正常に完了しました");
   } catch (error) {
-    console.log("=" * 50);
+    console.log("=".repeat(50));
     console.error("💥 同期処理でエラーが発生しました");
     process.exit(1);
   }
