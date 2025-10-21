@@ -41,15 +41,19 @@ export default function DiagnosePage() {
     ];
     yamagataCities.forEach(city => cities.add(city));
 
+    // 検索結果からも地域を追加（五十音順を維持するため、追加後にソート）
     results.forEach(g => {
       if (g.area_prefecture) prefectures.add(g.area_prefecture);
       if (g.area_city) cities.add(g.area_city);
     });
 
-    return [
-      Array.from(prefectures).sort((a, b) => a.localeCompare(b, 'ja')),
-      Array.from(cities).sort((a, b) => a.localeCompare(b, 'ja'))
-    ];
+    const sortedPrefectures = Array.from(prefectures).sort((a, b) => a.localeCompare(b, 'ja'));
+    const sortedCities = Array.from(cities).sort((a, b) => a.localeCompare(b, 'ja'));
+    
+    // デバッグ用ログ
+    console.log('Sorted cities:', sortedCities.slice(0, 10)); // 最初の10件を表示
+    
+    return [sortedPrefectures, sortedCities];
   }, [results]);
 
   const handleSearch = async () => {
