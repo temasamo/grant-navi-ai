@@ -25,7 +25,12 @@ async function fetchYamagataPrefGrants() {
 
   for (const page of SEARCH_PAGES) {
     try {
-      const response = await fetch(page, { timeout: 10000 });
+      // AbortControllerを使用してタイムアウトを実装
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await fetch(page, { signal: controller.signal });
+      clearTimeout(timeoutId);
       const html = await response.text();
       const $ = cheerio.load(html);
 
