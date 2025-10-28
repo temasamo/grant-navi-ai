@@ -26,25 +26,14 @@ jobs:
           version: 9
           run_install: true
 
-      - name: ⚙️ 環境変数をセット
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          echo "環境変数をセットしました。"
-          echo "Supabase URL: ✅ 設定済み"
-          echo "Service Role Key: ✅ 設定済み"
-
       - name: 🚀 補助金データ同期スクリプトを実行
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           echo "🧠 補助金データの同期を開始します..."
-          pnpm tsx apps/web/scripts/sync_grants.ts
+          cd apps/web
+          pnpm tsx scripts/sync_grants.ts
           echo "✅ 同期完了"
-
-      - name: 🪵 結果ログを確認
-        run: echo "✅ 補助金・助成金データの自動同期が完了しました。"
 
 
