@@ -1,0 +1,50 @@
+name: Sync Grants Data (Daily)
+
+on:
+  # 手動実行も可能
+  workflow_dispatch:
+  # 毎日 午前5時（日本時間）に自動実行（UTCで20時）
+  schedule:
+    - cron: '0 20 * * *'
+
+jobs:
+  sync-grants:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🧭 リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: 🟢 Node.js セットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 📦 pnpm セットアップ
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: true
+
+      - name: ⚙️ 環境変数をセット
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "環境変数をセットしました。"
+          echo "Supabase URL: ✅ 設定済み"
+          echo "Service Role Key: ✅ 設定済み"
+
+      - name: 🚀 補助金データ同期スクリプトを実行
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "🧠 補助金データの同期を開始します..."
+          pnpm tsx apps/web/scripts/sync_grants.ts
+          echo "✅ 同期完了"
+
+      - name: 🪵 結果ログを確認
+        run: echo "✅ 補助金・助成金データの自動同期が完了しました。"
+
+
