@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const cheerio = require("cheerio");
-const fetch = require('node-fetch'); // Node.js v18 compatible fetch
+// Node.js v18以降ではfetchがグローバルに利用可能
 
 const OUTPUT_PATH = path.join(process.cwd(), "apps/web/data/fetched_pref_yamagata.csv");
 
