@@ -34,7 +34,7 @@ async function fetchYamagataPrefGrants() {
       const html = await response.text();
       const $ = cheerio.load(html);
 
-      $("a").each((_: number, el: cheerio.Element) => {
+      $("a").each((_: number, el: any) => {
         const title = $(el).text().trim();
         const href = $(el).attr("href");
         if (!href || !title) return;
