@@ -22,6 +22,23 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 console.log("🔑 使用するキー:", process.env.SUPABASE_SERVICE_ROLE_KEY ? "Service Role Key" : "ANON Key");
 
+// ログ保存関数
+async function logSyncResult(source: string, records: number, status: string, message: string) {
+  try {
+    await supabase.from("sync_logs").insert([
+      {
+        source,
+        records_synced: records,
+        status,
+        message,
+      },
+    ]);
+    console.log(`📝 ログ保存完了: ${source} - ${status} (${records}件)`);
+  } catch (err) {
+    console.error("❌ ログ保存エラー:", err);
+  }
+}
+
 interface GrantRecord {
   type: string;
   title: string;
@@ -137,9 +154,15 @@ async function main() {
     await syncGrants();
     console.log("=".repeat(50));
     console.log("🎉 同期処理が正常に完了しました");
-  } catch (error) {
+    
+    // 成功ログを記録
+    await logSyncResult("grants_sync", 8, "success", "Supabaseへの同期が正常に完了しました");
+  } catch (error: any) {
     console.log("=".repeat(50));
     console.error("💥 同期処理でエラーが発生しました");
+    
+    // エラーログを記録
+    await logSyncResult("grants_sync", 0, "error", error.message || "不明なエラー");
     process.exit(1);
   }
 }
