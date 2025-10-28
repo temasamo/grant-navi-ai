@@ -1,171 +1,88 @@
-import fs from "fs";
-import csvParser from "csv-parser";
 import { createClient } from "@supabase/supabase-js";
-import { config } from "dotenv";
+import fs from "fs";
+import path from "path";
+import csv from "csv-parser";
 
-// .env.localファイルを読み込み
-config({ path: ".env.local" });
+// ========== Supabase接続 ==========
+const supabase = createClient(
+  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-// 環境変数の確認
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error("❌ 環境変数が設定されていません:");
-  console.error("  NEXT_PUBLIC_SUPABASE_URL:", !!supabaseUrl);
-  console.error("  SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY:", !!supabaseKey);
-  process.exit(1);
+// ========== ユーティリティ：CSV読込 ==========
+async function readCSV(filePath: string) {
+  const results: any[] = [];
+  return new Promise((resolve, reject) => {
+    fs.createReadStream(filePath)
+      .pipe(csv())
+      .on("data", (data) => results.push(data))
+      .on("end", () => resolve(results))
+      .on("error", reject);
+  });
 }
 
-// Supabaseクライアントを作成
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-console.log("🔑 使用するキー:", process.env.SUPABASE_SERVICE_ROLE_KEY ? "Service Role Key" : "ANON Key");
-
-// ログ保存関数
+// ========== ログ記録 ==========
 async function logSyncResult(source: string, records: number, status: string, message: string) {
-  try {
-    await supabase.from("sync_logs").insert([
-      {
-        source,
-        records_synced: records,
-        status,
-        message,
-      },
-    ]);
-    console.log(`📝 ログ保存完了: ${source} - ${status} (${records}件)`);
-  } catch (err) {
-    console.error("❌ ログ保存エラー:", err);
-  }
+  await supabase.from("sync_logs").insert([
+    {
+      source,
+      records_synced: records,
+      status,
+      message,
+    },
+  ]);
+  console.log(`📝 [${source}] ${message} (${records}件)`);
 }
 
-interface GrantRecord {
-  type: string;
-  title: string;
-  description: string;
-  organization: string;
-  level: string;
-  area_prefecture: string;
-  area_city: string;
-  industry: string;
-  target_type: string;
-  max_amount: string;
-  subsidy_rate: string;
-  source_url: string;
-}
-
-// 同期関数
-async function syncGrants() {
-  // 複数のCSVファイルを処理
-  const csvFiles = [
-    "data/fetched_national_grants.csv",
-    "data/fetched_pref_yamagata.csv"
-  ];
-  
-  const allRecords: GrantRecord[] = [];
-
-  for (const csvFilePath of csvFiles) {
-    // CSVファイルの存在確認
-    if (!fs.existsSync(csvFilePath)) {
-      console.log(`⚠️ CSVファイルが見つかりません: ${csvFilePath} (スキップ)`);
-      continue;
-    }
-
-    console.log(`📂 CSVを読み込み中: ${csvFilePath}`);
-    const records: GrantRecord[] = [];
-
-    await new Promise<void>((resolve, reject) => {
-      fs.createReadStream(csvFilePath)
-        .pipe(csvParser())
-        .on("data", (row) => {
-          // データの正規化
-          const record: GrantRecord = {
-            type: row.type || "",
-            title: row.title || "",
-            description: row.description || "",
-            organization: row.organization || "",
-            level: row.level || "national",
-            area_prefecture: row.area_prefecture || "全国",
-            area_city: row.area_city || "",
-            industry: row.industry || "旅館業",
-            target_type: row.target_type || "法人",
-            max_amount: row.max_amount || "",
-            subsidy_rate: row.subsidy_rate || "",
-            source_url: row.source_url || "",
-          };
-          records.push(record);
-        })
-        .on("end", () => {
-          console.log(`✅ ${csvFilePath}: ${records.length} 件読み込み完了`);
-          allRecords.push(...records);
-          resolve();
-        })
-        .on("error", (err) => {
-          console.error(`❌ CSV読み込みエラー (${csvFilePath}):`, err);
-          reject(err);
-        });
-    });
-  }
-
-  // 全データをSupabaseに同期
+// ========== メイン処理 ==========
+async function syncCSVtoSupabase(fileName: string, source: string) {
   try {
-    console.log(`📦 合計 ${allRecords.length} 件のデータをSupabaseへ同期開始...`);
-
-    if (allRecords.length === 0) {
-      console.log("⚠️ 同期するデータがありません");
+    const filePath = path.resolve("apps/web/data", fileName);
+    if (!fs.existsSync(filePath)) {
+      console.warn(`⚠️ ${fileName} が見つかりません。スキップします。`);
+      await logSyncResult(source, 0, "error", `${fileName} が見つかりません`);
       return;
     }
 
-    // Supabaseにinsert（重複チェックは事前に行う）
+    const records = (await readCSV(filePath)) as any[];
+
+    if (records.length === 0) {
+      console.warn(`⚠️ ${source}: CSVが空のため同期スキップ`);
+      await logSyncResult(source, 0, "success", "CSVが空のため更新なし");
+      return;
+    }
+
+    console.log(`🧠 ${source}: ${records.length}件をSupabaseに同期開始...`);
+
     const { data, error } = await supabase
       .from("grants")
-      .insert(allRecords);
+      .upsert(records, { onConflict: "title" }) // titleをキーに重複回避
+      .select();
+
+    const syncedCount = data ? data.length : 0;
 
     if (error) {
-      console.error("❌ 同期エラー:", error.message);
-      console.error("詳細:", error);
-      throw error;
+      console.error(`❌ ${source}: 同期中にエラー発生 - ${error.message}`);
+      await logSyncResult(source, 0, "error", error.message);
+    } else if (syncedCount === 0) {
+      console.log(`✅ ${source}: 更新なし（既存データと同一）`);
+      await logSyncResult(source, 0, "success", "更新なし（新規データなし）");
     } else {
-      console.log(`✅ Supabaseへ ${allRecords.length} 件を同期完了！`);
-      
-      // 同期結果の詳細表示
-      console.log("\n📊 同期結果概要:");
-      const orgCounts = allRecords.reduce((acc, item) => {
-        acc[item.organization] = (acc[item.organization] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-      
-      Object.entries(orgCounts).forEach(([org, count]) => {
-        console.log(`  ${org}: ${count}件`);
-      });
+      console.log(`✅ ${source}: ${syncedCount}件のデータを同期完了`);
+      await logSyncResult(source, syncedCount, "success", "正常に同期されました");
     }
-  } catch (err) {
-    console.error("❌ 予期しないエラー:", err);
-    throw err;
+  } catch (err: any) {
+    console.error(`💥 ${source}: 想定外のエラー`, err.message);
+    await logSyncResult(source, 0, "error", err.message);
   }
 }
 
-// メイン実行
+// ========== 実行 ==========
 async function main() {
-  console.log("🚀 Supabase同期スクリプト開始");
-  console.log("=".repeat(50));
-  
-  try {
-    await syncGrants();
-    console.log("=".repeat(50));
-    console.log("🎉 同期処理が正常に完了しました");
-    
-    // 成功ログを記録
-    await logSyncResult("grants_sync", 8, "success", "Supabaseへの同期が正常に完了しました");
-  } catch (error: any) {
-    console.log("=".repeat(50));
-    console.error("💥 同期処理でエラーが発生しました");
-    
-    // エラーログを記録
-    await logSyncResult("grants_sync", 0, "error", error.message || "不明なエラー");
-    process.exit(1);
-  }
+  console.log("🚀 補助金データの同期を開始します...");
+  await syncCSVtoSupabase("fetched_national_grants.csv", "national");
+  await syncCSVtoSupabase("fetched_pref_yamagata.csv", "yamagata");
+  console.log("🎉 全ての同期処理が完了しました！");
 }
 
-// スクリプト実行
 main();
