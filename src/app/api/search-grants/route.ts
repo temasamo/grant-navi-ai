@@ -87,7 +87,19 @@ export async function POST(req: Request) {
     // 並び替え（priority降順）
     const sorted = ranked.sort((a, b) => b.priority - a.priority);
 
-    return NextResponse.json({ results: sorted }, { status: 200 });
+    // 最終更新日時を取得
+    const { data: logs } = await supabase
+      .from("sync_logs")
+      .select("executed_at")
+      .order("executed_at", { ascending: false })
+      .limit(1);
+
+    const lastUpdated = logs?.[0]?.executed_at || null;
+
+    return NextResponse.json({
+      results: sorted,
+      lastUpdated,
+    }, { status: 200 });
   } catch (err) {
     console.error("Unexpected error:", err);
     return NextResponse.json({ error: "サーバーエラー" }, { status: 500 });

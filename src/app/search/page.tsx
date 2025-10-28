@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 type Grant = {
   id: number;
@@ -22,6 +22,28 @@ export default function DiagnosePage() {
   const [results, setResults] = useState<Grant[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+
+  // 初期データ読み込み
+  useEffect(() => {
+    async function fetchInitialData() {
+      try {
+        const res = await fetch("/api/search-grants", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ area: "山形県", industry: "旅館業" }),
+        });
+        const data = await res.json();
+        if (data.lastUpdated) {
+          const date = new Date(data.lastUpdated);
+          setLastUpdated(date.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }));
+        }
+      } catch (err) {
+        console.error("初期データ読み込みエラー:", err);
+      }
+    }
+    fetchInitialData();
+  }, []);
 
   // 地域オプションを動的に生成
   const [prefectureOptions, cityOptions] = useMemo(() => {
@@ -86,6 +108,11 @@ export default function DiagnosePage() {
 
       if (data.results) {
         setResults(data.results);
+        // lastUpdatedも更新
+        if (data.lastUpdated) {
+          const date = new Date(data.lastUpdated);
+          setLastUpdated(date.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }));
+        }
       } else if (data.message) {
         setMessage(data.message);
       } else {
@@ -104,6 +131,12 @@ export default function DiagnosePage() {
       <h1 className="text-2xl font-bold mb-6 text-center">
         助成金診断AI（旅館業向け）
       </h1>
+      
+      {lastUpdated && (
+        <p className="text-sm text-gray-500 mb-4 text-center">
+          データ最終更新：{lastUpdated}
+        </p>
+      )}
 
       {/* 入力フォーム */}
       <div className="bg-gray-50 p-4 rounded-lg shadow mb-6">
