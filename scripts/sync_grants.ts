@@ -7,7 +7,6 @@
 import fs from "fs";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
-import csv from "csv-parser";
 import dotenv from "dotenv";
 
 // 環境変数の読み込み（.env.localがあれば読み込む）
@@ -21,6 +20,8 @@ if (!supabaseUrl || !supabaseServiceKey) {
   console.error("❌ 環境変数が設定されていません:");
   console.error("  SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL:", !!supabaseUrl);
   console.error("  SUPABASE_SERVICE_ROLE_KEY:", !!supabaseServiceKey);
+  console.error("利用可能な環境変数:");
+  console.error(process.env);
   process.exit(1);
 }
 
@@ -44,50 +45,49 @@ async function logSync(source: string, records: number, status: string, message:
 }
 
 // CSV読み込みユーティリティ
-async function readCsv(filePath: string): Promise<any[]> {
-  const results: any[] = [];
-  return new Promise((resolve, reject) => {
-    fs.createReadStream(filePath)
-      .pipe(csv())
-      .on("data", (data) => results.push(data))
-      .on("end", () => resolve(results))
-      .on("error", reject);
-  });
+function readCsv(filePath: string): any[] {
+  const content = fs.readFileSync(filePath, 'utf-8');
+  const lines = content.split('\n').filter(line => line.trim());
+  return lines.map(line => line.split(','));
 }
 
-// データ挿入関数
+// CSV同期関数（ファイルパス修正＋upsert対応版）
 async function syncCsvToSupabase(source: string, fileName: string) {
-  const filePath = path.join(process.cwd(), "apps/web/scripts/data", fileName);
+  // ✅ 実行ディレクトリ非依存でscripts/data配下を参照
+  const scriptDir = path.dirname(new URL(import.meta.url).pathname);
+  const filePath = path.join(scriptDir, "data", fileName);
 
+  // ファイル存在確認
   if (!fs.existsSync(filePath)) {
     await logSync(source, 0, "error", `${fileName} が存在しません`);
     return;
   }
 
   try {
-    const data = await readCsv(filePath);
+    const data = readCsv(filePath);
     if (data.length === 0) {
       await logSync(source, 0, "error", `${fileName} に有効なデータがありません`);
       return;
     }
 
-    // データを正規化（CSVのカラム構造に合わせて）
-    const formatted = data.map((row: any) => ({
-      type: row.type || "",
-      title: row.title || "",
-      description: row.description || "",
-      organization: row.organization || "",
-      level: row.level || "national",
-      area_prefecture: row.area_prefecture || "",
-      area_city: row.area_city || "",
-      industry: row.industry || "旅館業",
-      target_type: row.target_type || "法人",
-      max_amount: row.max_amount || "",
-      subsidy_rate: row.subsidy_rate || "",
-      source_url: row.source_url || row.link || "",
+    // CSV内容整形
+    const formatted = data.map((r) => ({
+      title: r[0] || "",
+      organization: r[1] || "",
+      description: r[2] || "",
+      source_url: r[3] || "",
+      level: source === "national" ? "national" : "prefecture",
+      area_prefecture: source === "yamagata" ? "山形県" : "",
+      industry: "旅館業",
+      target_type: "法人",
+      type: "補助金",
     }));
 
-    const { error } = await supabase.from("grants").upsert(formatted, { onConflict: "title" });
+    // ✅ 重複をスキップ（title重複時に上書きor無視）
+    const { error } = await supabase
+      .from("grants")
+      .upsert(formatted, { onConflict: "title" });
+
     if (error) throw error;
 
     await logSync(source, formatted.length, "success", "正常に同期されました");
