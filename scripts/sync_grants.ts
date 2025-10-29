@@ -1,6 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
 import fs from "fs";
-import path from "path";
 import csv from "csv-parser";
 
 // ========== Supabase接続 ==========
@@ -34,13 +33,16 @@ async function logSyncResult(source: string, records: number, status: string, me
   console.log(`📝 [${source}] ${message} (${records}件)`);
 }
 
+// ========== CSVファイルパス定義 ==========
+const nationalPath = "apps/web/scripts/data/fetched_national_grants.csv";
+const yamagataPath = "apps/web/scripts/data/fetched_pref_yamagata.csv";
+
 // ========== メイン処理 ==========
-async function syncCSVtoSupabase(fileName: string, source: string) {
+async function syncCSVtoSupabase(filePath: string, source: string) {
   try {
-    const filePath = path.resolve("apps/web/data", fileName);
     if (!fs.existsSync(filePath)) {
-      console.warn(`⚠️ ${fileName} が見つかりません。スキップします。`);
-      await logSyncResult(source, 0, "error", `${fileName} が見つかりません`);
+      console.warn(`⚠️ ${filePath} が見つかりません。スキップします。`);
+      await logSyncResult(source, 0, "error", `${filePath} が見つかりません`);
       return;
     }
 
@@ -137,8 +139,8 @@ async function removeDuplicates() {
 // ========== 実行 ==========
 async function main() {
   console.log("🚀 補助金データの同期を開始します...");
-  await syncCSVtoSupabase("fetched_national_grants.csv", "national");
-  await syncCSVtoSupabase("fetched_pref_yamagata.csv", "yamagata");
+  await syncCSVtoSupabase(nationalPath, "national");
+  await syncCSVtoSupabase(yamagataPath, "yamagata");
   await removeDuplicates(); // ✅ 重複削除を追加
   console.log("🎉 全ての同期処理が完了しました！");
 }
