@@ -77,11 +77,69 @@ async function syncCSVtoSupabase(fileName: string, source: string) {
   }
 }
 
+// ================================
+// 重複削除ロジック
+// ================================
+async function removeDuplicates() {
+  console.log("🧹 重複データをチェックしています...");
+
+  const { data: duplicates, error } = await supabase
+    .from("grants")
+    .select("id, title");
+
+  if (error) {
+    console.error("重複検出エラー:", error.message);
+    await logSyncResult("deduplication", 0, "error", error.message);
+    return;
+  }
+
+  const titleMap = new Map<string, number[]>();
+
+  // タイトルごとにグルーピング（空白・全角半角を無視）
+  duplicates?.forEach((row: { id: number; title: string }) => {
+    const key = (row.title || "").replace(/\s+/g, "").trim();
+    if (!titleMap.has(key)) {
+      titleMap.set(key, []);
+    }
+    titleMap.get(key)!.push(row.id);
+  });
+
+  // 削除対象IDを抽出
+  const idsToDelete: number[] = [];
+  for (const [, ids] of titleMap.entries()) {
+    if (ids.length > 1) {
+      ids.sort((a, b) => a - b);
+      idsToDelete.push(...ids.slice(1)); // 最新1件のみ残す（id最小を残す想定）
+    }
+  }
+
+  if (idsToDelete.length === 0) {
+    console.log("✅ 重複は検出されませんでした。");
+    await logSyncResult("deduplication", 0, "success", "重複なし");
+    return;
+  }
+
+  // 重複削除を実行
+  const { error: deleteError } = await supabase
+    .from("grants")
+    .delete()
+    .in("id", idsToDelete);
+
+  if (deleteError) {
+    console.error("❌ 重複削除エラー:", deleteError.message);
+    await logSyncResult("deduplication", 0, "error", deleteError.message);
+  } else {
+    console.log(`🧹 ${idsToDelete.length}件の重複データを削除しました。`);
+    await logSyncResult("deduplication", idsToDelete.length, "success", "重複削除完了");
+  }
+}
+
 // ========== 実行 ==========
 async function main() {
   console.log("🚀 補助金データの同期を開始します...");
   await syncCSVtoSupabase("fetched_national_grants.csv", "national");
   await syncCSVtoSupabase("fetched_pref_yamagata.csv", "yamagata");
+  await removeDuplicates(); // ✅ 重複削除を追加
   console.log("🎉 全ての同期処理が完了しました！");
 }
 
