@@ -18,6 +18,15 @@ export type NewGrant = {
   label: string;
 };
 
+type RawGrant = {
+  id: string | number;
+  title: string;
+  level: string | null;
+  area_prefecture: string | null;
+  created_at: string;
+  url: string | null;
+};
+
 export async function getTodayNewGrants(): Promise<NewGrant[]> {
   try {
     // JST当日範囲をUTCに変換してフィルタ
@@ -53,7 +62,8 @@ export async function getTodayNewGrants(): Promise<NewGrant[]> {
       return [];
     }
 
-    const withLabel: NewGrant[] = data.map((g) => {
+    const rows: RawGrant[] = Array.isArray(data) ? (data as RawGrant[]) : [];
+    const withLabel: NewGrant[] = rows.map((g: RawGrant) => {
       const cleanedUrl = typeof g.url === "string" ? g.url.replace(/^"+|"+$/g, "") : null;
       return {
         id: g.id,
