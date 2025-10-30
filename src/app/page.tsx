@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { getGrantStats } from "@/lib/getGrantStats";
+import { getGrantStats, type GroupedStat } from "@/lib/getGrantStats";
+import { getTodayNewGrants, type NewGrant } from "@/lib/getTodayNewGrants";
 
 export default async function HomePage() {
   const { totalToday, groupedToday, diff } = await getGrantStats();
+  const newGrants = await getTodayNewGrants();
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-gray-50 text-gray-800 px-6">
       <div className="max-w-2xl text-center space-y-8">
@@ -26,12 +28,31 @@ export default async function HomePage() {
           </p>
 
           <div className="flex flex-col items-center gap-1 text-sm">
-            {groupedToday?.map((g: any) => (
-              <p key={g.source} className="text-gray-600">
-                {g.source}: <span className="font-semibold text-gray-900">{g.count}</span> 件
+            {groupedToday?.map((g: GroupedStat) => (
+              <p key={g.label} className="text-gray-600">
+                {g.label}: <span className="font-semibold text-gray-900">{g.count}</span> 件
               </p>
             ))}
           </div>
+        </div>
+
+        {/* 🆕 新着一覧 */}
+        <div className="mt-2 mx-auto max-w-md text-left">
+          <h3 className="text-md font-semibold mb-2">🆕 本日の新着補助金</h3>
+          {newGrants.length > 0 ? (
+            <ul className="space-y-2">
+              {newGrants.map((g: NewGrant) => (
+                <li key={g.id} className="border-b border-gray-200 pb-2">
+                  <p className="font-medium">{g.title}</p>
+                  <p className="text-xs text-gray-500">
+                    {g.label} ／ {new Date(g.updated_at).toLocaleTimeString("ja-JP")}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-gray-400">本日の新着はありません。</p>
+          )}
         </div>
 
         <div className="space-y-4">

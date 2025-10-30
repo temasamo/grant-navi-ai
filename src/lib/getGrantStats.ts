@@ -1,33 +1,45 @@
 import { createClient } from "@supabase/supabase-js";
 
+export type GroupedStat = { label: string; count: number };
+export type GrantStats = {
+  totalToday: number;
+  groupedToday: GroupedStat[];
+  yesterdayCount: number;
+  diff: number;
+};
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export async function getGrantStats() {
+type GrantRow = { level: string | null; area_prefecture: string | null };
+
+export async function getGrantStats(): Promise<GrantStats> {
   // 全件数取得
   const { count: totalToday } = await supabase
     .from("grants")
     .select("*", { count: "exact", head: true });
 
-  // Source別集計（PostgRESTの正しい構文）
+  // 区分別集計（level/area_prefecture を利用）
   const { data: allGrants } = await supabase
     .from("grants")
-    .select("source");
+    .select("level, area_prefecture");
 
   // クライアント側で集計
-  const groupedToday = allGrants?.reduce((acc: any, grant: any) => {
-    const source = grant.source || "unknown";
-    acc[source] = (acc[source] || 0) + 1;
-    return acc;
-  }, {});
+  const groupedTodayMap: Record<string, number> = (allGrants || []).reduce(
+    (acc: Record<string, number>, grant: GrantRow) => {
+      const label = grant.level === "national" ? "national" : (grant.area_prefecture || "prefecture");
+      acc[label] = (acc[label] || 0) + 1;
+      return acc;
+    },
+    {}
+  );
 
   // 配列形式に変換
-  const groupedArray = Object.entries(groupedToday || {}).map(([source, count]) => ({
-    source,
-    count: count as number
-  }));
+  const groupedArray: GroupedStat[] = Object.entries(groupedTodayMap).map(
+    ([label, count]) => ({ label, count })
+  );
 
   // 昨日の件数（updated_at 基準）
   const { count: yesterdayCount } = await supabase
