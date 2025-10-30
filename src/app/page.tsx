@@ -2,6 +2,11 @@ import Link from "next/link";
 import { getGrantStats, type GroupedStat } from "@/lib/getGrantStats";
 import { getTodayNewGrants, type NewGrant } from "@/lib/getTodayNewGrants";
 
+export const metadata = {
+  title: "Grant Navi AI | 補助金・助成金診断",
+  description: "あなたの会社が今もらえる補助金・助成金を、AIが3秒で診断します。",
+};
+
 export default async function HomePage() {
   const { totalToday, groupedToday, diff } = await getGrantStats();
   const newGrants = await getTodayNewGrants();
@@ -12,12 +17,12 @@ export default async function HomePage() {
           Grant Navi AI
         </h1>
         <p className="text-lg text-gray-600">
-          あなたの会社が今もらえる助成金を、AIが3秒で診断します。
+          あなたの会社が今もらえる補助金・助成金を、AIが3秒で診断します。
         </p>
 
         {/* 統計情報表示 */}
         <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">助成金データ統計</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-3">補助金・助成金データ統計</h2>
           <p className="text-sm text-gray-600 mb-2">
             トータル件数: <span className="font-semibold text-gray-900">{totalToday}</span>{" "}
             （前日比:{" "}
@@ -38,7 +43,7 @@ export default async function HomePage() {
 
         {/* 🆕 新着一覧 */}
         <div className="mt-2 mx-auto max-w-md text-left">
-          <h3 className="text-md font-semibold mb-2">🆕 本日の新着補助金</h3>
+          <h3 className="text-md font-semibold mb-2">🆕 本日の新着補助金・助成金</h3>
           {newGrants.length > 0 ? (
             <ul className="space-y-2">
               {newGrants.map((g: NewGrant) => (
