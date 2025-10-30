@@ -52,6 +52,17 @@ export default async function HomePage() {
                   <p className="text-xs text-gray-500">
                     {g.label} ／ {new Date(g.updated_at).toLocaleTimeString("ja-JP")}
                   </p>
+                  {/* 🔗 詳細リンク表示 */}
+                  {g.url && (
+                    <a
+                      href={g.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline text-sm mt-1 inline-block"
+                    >
+                      🔗 詳しく見る
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>

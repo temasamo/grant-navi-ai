@@ -71,23 +71,14 @@ async function fetchYamagataPrefGrants() {
   }
 
   // CSV出力
-  const header =
-    "type,title,description,organization,level,area_prefecture,area_city,industry,target_type,max_amount,subsidy_rate,source_url\n";
+  const header = "title,description,organization,url\n";
 
   const csv = results
     .map((r) =>
       [
-        r.type,
         `"${r.title.replace(/"/g, '""')}"`,
         `"${r.description.replace(/"/g, '""')}"`,
         r.organization,
-        r.level,
-        r.area_prefecture,
-        r.area_city,
-        r.industry,
-        r.target_type,
-        r.max_amount,
-        r.subsidy_rate,
         r.source_url,
       ].join(",")
     )

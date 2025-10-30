@@ -70,18 +70,31 @@ async function syncCsvToSupabase(source: string, fileName: string) {
       return;
     }
 
-    // CSV内容整形
-    const formatted = data.map((r) => ({
-      title: r[0] || "",
-      organization: r[1] || "",
-      description: r[2] || "",
-      source_url: r[3] || "",
-      level: source === "national" ? "national" : "prefecture",
-      area_prefecture: source === "yamagata" ? "山形県" : "",
-      industry: "旅館業",
-      target_type: "法人",
-      type: "補助金",
-    }));
+    // CSV内容整形（新旧どちらのCSVフォーマットにも対応）
+    const isNewSchema = (data[0][0] || '').toLowerCase() === 'title';
+    const isOldSchema = (data[0][0] || '').toLowerCase() === 'type';
+
+    const formatted = data
+      .slice(1) // ヘッダー行をスキップ
+      .map((r) => {
+        const title = isNewSchema ? r[0] : isOldSchema ? r[1] : r[0];
+        const description = isNewSchema ? r[1] : isOldSchema ? r[2] : r[1];
+        const organization = isNewSchema ? r[2] : isOldSchema ? r[3] : r[2];
+        const url = isNewSchema ? r[3] : isOldSchema ? r[11] : r[3];
+        return {
+          title: title || '',
+          description: description || '',
+          organization: organization || '',
+          url: url || '',
+          created_at: new Date().toISOString(),
+          // 既存スキーマ互換のために維持
+          level: source === 'national' ? 'national' : 'prefecture',
+          area_prefecture: source === 'yamagata' ? '山形県' : '',
+          industry: '旅館業',
+          target_type: '法人',
+          type: '補助金',
+        };
+      });
 
     // ✅ 重複をスキップ（title重複時に上書きor無視）
     const { error } = await supabase
