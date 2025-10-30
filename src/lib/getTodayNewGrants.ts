@@ -78,8 +78,9 @@ export async function getTodayNewGrants(): Promise<NewGrant[]> {
 
     console.log("✅ 今日の新着データ:", withLabel);
     return withLabel;
-  } catch (err: any) {
-    console.error("⚠️ Unexpected error in getTodayNewGrants:", err);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("⚠️ Unexpected error in getTodayNewGrants:", message);
     return [];
   }
 }
