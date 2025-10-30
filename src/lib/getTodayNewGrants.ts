@@ -53,15 +53,18 @@ export async function getTodayNewGrants(): Promise<NewGrant[]> {
       return [];
     }
 
-    const withLabel: NewGrant[] = data.map((g) => ({
-      id: g.id,
-      title: g.title,
-      level: g.level,
-      area_prefecture: g.area_prefecture,
-      updated_at: g.created_at,
-      url: g.url,
-      label: g.level === "national" ? "national" : g.area_prefecture || "prefecture",
-    }));
+    const withLabel: NewGrant[] = data.map((g) => {
+      const cleanedUrl = typeof g.url === "string" ? g.url.replace(/^"+|"+$/g, "") : null;
+      return {
+        id: g.id,
+        title: g.title,
+        level: g.level,
+        area_prefecture: g.area_prefecture,
+        updated_at: g.created_at,
+        url: cleanedUrl,
+        label: g.level === "national" ? "national" : g.area_prefecture || "prefecture",
+      };
+    });
 
     console.log("✅ 今日の新着データ:", withLabel);
     return withLabel;
