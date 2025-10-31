@@ -142,6 +142,9 @@ async function syncCsvToSupabase(source: string, fileName: string) {
         console.log(`⚠️  不正なURLをスキップ: "${rawUrl}" (${title.substring(0, 30)}...)`);
       }
       
+      // area_cityフィールドを読み込む
+      const areaCity = r.area_city || r['area_city'] || '';
+      
       return {
         title: title || '',
         description: description || '',
@@ -150,7 +153,8 @@ async function syncCsvToSupabase(source: string, fileName: string) {
         created_at: new Date().toISOString(),
         // 既存スキーマ互換のために維持
         level: source === 'national' ? 'national' : 'prefecture',
-        area_prefecture: source === 'yamagata' ? '山形県' : '',
+        area_prefecture: source === 'yamagata' ? (r.area_prefecture || r['area_prefecture'] || '山形県') : '',
+        area_city: areaCity, // 市町村データ用
         industry: '旅館業',
         target_type: '法人',
         type: '補助金',
@@ -259,6 +263,7 @@ async function main() {
   console.log("🧠 補助金データ同期を開始します...");
   await syncCsvToSupabase("national", "fetched_national_grants.csv");
   await syncCsvToSupabase("yamagata", "fetched_pref_yamagata.csv");
+  await syncCsvToSupabase("yamagata", "fetched_city_yamagata.csv"); // 市町村データも追加
   await deduplicateGrants();
   console.log("✅ 全同期完了");
 }
