@@ -8,6 +8,7 @@ import fs from "fs";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
+import Papa from "papaparse";
 
 // 環境変数の読み込み（.env.localがあれば読み込む）
 dotenv.config({ path: ".env.local" });
@@ -44,18 +45,22 @@ async function logSync(source: string, records: number, status: string, message:
   }
 }
 
-// CSV読み込みユーティリティ
+// CSV読み込みユーティリティ（papaparseを使用して正しく解析）
 function readCsv(filePath: string): any[] {
   const content = fs.readFileSync(filePath, 'utf-8');
-  const lines = content.split('\n').filter(line => line.trim());
-  return lines.map(line => line.split(','));
+  const parsed = Papa.parse(content, {
+    header: true,
+    skipEmptyLines: true,
+  });
+  return parsed.data as any[];
 }
 
 // CSV同期関数（ファイルパス修正＋upsert対応版）
 async function syncCsvToSupabase(source: string, fileName: string) {
-  // ✅ 実行ディレクトリ非依存でscripts/data配下を参照
+  // ✅ apps/web/data配下を参照（正しいURLデータが入っているCSVファイル）
   const scriptDir = path.dirname(new URL(import.meta.url).pathname);
-  const filePath = path.join(scriptDir, "data", fileName);
+  const webDataDir = path.join(scriptDir, "..", "data");
+  const filePath = path.join(webDataDir, fileName);
 
   // ファイル存在確認
   if (!fs.existsSync(filePath)) {
@@ -70,31 +75,44 @@ async function syncCsvToSupabase(source: string, fileName: string) {
       return;
     }
 
-    // CSV内容整形（新旧どちらのCSVフォーマットにも対応）
-    const isNewSchema = (data[0][0] || '').toLowerCase() === 'title';
-    const isOldSchema = (data[0][0] || '').toLowerCase() === 'type';
+    // CSV内容整形（papaparseでヘッダー付きとして読み込んでいるため、オブジェクトとしてアクセス）
+    const formatted = data.map((r: any, index: number) => {
+      // 新旧スキーマに対応
+      const title = r.title || r['title'] || '';
+      const description = r.description || r['description'] || '';
+      const organization = r.organization || r['organization'] || '';
+      // URLは source_url, url, link カラムのいずれかから取得（優先順位順）
+      const url = r.source_url || r.url || r.link || r['source_url'] || r['url'] || r['link'] || '';
+      
+      return {
+        title: title || '',
+        description: description || '',
+        organization: organization || '',
+        url: url || '',
+        created_at: new Date().toISOString(),
+        // 既存スキーマ互換のために維持
+        level: source === 'national' ? 'national' : 'prefecture',
+        area_prefecture: source === 'yamagata' ? '山形県' : '',
+        industry: '旅館業',
+        target_type: '法人',
+        type: '補助金',
+      };
+    });
 
-    const formatted = data
-      .slice(1) // ヘッダー行をスキップ
-      .map((r) => {
-        const title = isNewSchema ? r[0] : isOldSchema ? r[1] : r[0];
-        const description = isNewSchema ? r[1] : isOldSchema ? r[2] : r[1];
-        const organization = isNewSchema ? r[2] : isOldSchema ? r[3] : r[2];
-        const url = isNewSchema ? r[3] : isOldSchema ? r[11] : r[3];
-        return {
-          title: title || '',
-          description: description || '',
-          organization: organization || '',
-          url: url || '',
-          created_at: new Date().toISOString(),
-          // 既存スキーマ互換のために維持
-          level: source === 'national' ? 'national' : 'prefecture',
-          area_prefecture: source === 'yamagata' ? '山形県' : '',
-          industry: '旅館業',
-          target_type: '法人',
-          type: '補助金',
-        };
-      });
+    // 新規追加のみをカウントするため、既存タイトルを取得
+    const titles = formatted.map((f) => f.title);
+    const { data: existingGrants } = await supabase
+      .from("grants")
+      .select("title")
+      .in("title", titles);
+    
+    const existingTitles = new Set(
+      (existingGrants || []).map((g) => g.title)
+    );
+    const newRecordsCount = formatted.filter(
+      (f) => !existingTitles.has(f.title)
+    ).length;
+    const updatedRecordsCount = formatted.length - newRecordsCount;
 
     // ✅ 重複をスキップ（title重複時に上書きor無視）
     const { error } = await supabase
@@ -103,7 +121,8 @@ async function syncCsvToSupabase(source: string, fileName: string) {
 
     if (error) throw error;
 
-    await logSync(source, formatted.length, "success", "正常に同期されました");
+    const message = `正常に同期されました（新規: ${newRecordsCount}件, 更新: ${updatedRecordsCount}件）`;
+    await logSync(source, newRecordsCount, "success", message);
   } catch (e: any) {
     await logSync(source, 0, "error", e.message);
   }
