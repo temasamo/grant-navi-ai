@@ -41,17 +41,32 @@ export async function getGrantStats(): Promise<GrantStats> {
     ([label, count]) => ({ label, count })
   );
 
-  // 昨日の件数（updated_at 基準）
+  // 昨日の件数を正確に計算（JST基準）
+  // 日本時間の昨日の終了時点（23:59:59）をUTCに変換
+  const now = new Date();
+  const jstOffsetMs = 9 * 60 * 60 * 1000; // JSTはUTC+9
+  const jstNow = new Date(now.getTime() + jstOffsetMs);
+  
+  // 昨日の23:59:59（JST）を取得
+  const yesterdayEnd = new Date(jstNow);
+  yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+  yesterdayEnd.setHours(23, 59, 59, 999);
+  
+  // UTCに変換（JSTから9時間引く）
+  const yesterdayEndUtc = new Date(yesterdayEnd.getTime() - jstOffsetMs);
+  
+  // 昨日の終了時点までに作成されたレコード数をカウント
   const { count: yesterdayCount } = await supabase
     .from("grants")
     .select("*", { count: "exact", head: true })
-    .lt("updated_at", new Date().toISOString())
-    .gte("updated_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+    .lte("created_at", yesterdayEndUtc.toISOString());
+
+  const diff = (totalToday ?? 0) - (yesterdayCount ?? 0);
 
   return {
     totalToday: totalToday ?? 0,
     groupedToday: groupedArray,
     yesterdayCount: yesterdayCount ?? 0,
-    diff: (totalToday ?? 0) - (yesterdayCount ?? 0),
+    diff,
   };
 }

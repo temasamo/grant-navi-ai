@@ -123,7 +123,9 @@ async function syncCsvToSupabase(source: string, fileName: string) {
     // CSV内容整形（papaparseでヘッダー付きとして読み込んでいるため、オブジェクトとしてアクセス）
     const formatted = data.map((r: any, index: number) => {
       // 新旧スキーマに対応
-      const title = r.title || r['title'] || '';
+      // タイトルの前後のダブルクォートを除去（重複防止のため）
+      const rawTitle = r.title || r['title'] || '';
+      const title = rawTitle.replace(/^"+|"+$/g, '').trim(); // 前後のダブルクォートを除去
       const description = r.description || r['description'] || '';
       const organization = r.organization || r['organization'] || '';
       // URLは source_url, url, link カラムのいずれかから取得（優先順位順）
@@ -173,14 +175,16 @@ async function syncCsvToSupabase(source: string, fileName: string) {
     });
 
     // 新規追加のみをカウントするため、既存タイトルを取得
+    // タイトルの正規化（ダブルクォート除去）を統一
     const titles = uniqueFormatted.map((f) => f.title);
     const { data: existingGrants } = await supabase
       .from("grants")
       .select("title")
       .in("title", titles);
     
+    // 既存タイトルも正規化して比較（ダブルクォート除去）
     const existingTitles = new Set(
-      (existingGrants || []).map((g) => g.title)
+      (existingGrants || []).map((g) => (g.title || '').replace(/^"+|"+$/g, '').trim())
     );
     const newRecordsCount = uniqueFormatted.filter(
       (f) => !existingTitles.has(f.title)
