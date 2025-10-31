@@ -96,7 +96,7 @@ async function fetchNationalGrants() {
       const kankoHtml = await fetchHTML("https://www.mlit.go.jp/kankocho/");
       const $kanko = cheerio.load(kankoHtml);
 
-      $kanko("a").each((_, el) => {
+      $kanko("a").each((_: number, el: any) => {
         const title = $kanko(el).text().trim();
         const href = $kanko(el).attr("href");
         if (!href || !title) return;
@@ -131,7 +131,7 @@ async function fetchNationalGrants() {
       );
       const $mhlw = cheerio.load(mhlwHtml);
 
-      $mhlw("a").each((_, el) => {
+      $mhlw("a").each((_: number, el: any) => {
         const title = $mhlw(el).text().trim();
         const href = $mhlw(el).attr("href");
         if (!href || !title) return;
@@ -164,7 +164,7 @@ async function fetchNationalGrants() {
       const metiHtml = await fetchHTML("https://www.chusho.meti.go.jp/");
       const $meti = cheerio.load(metiHtml);
 
-      $meti("a").each((_, el) => {
+      $meti("a").each((_: number, el: any) => {
         const title = $meti(el).text().trim();
         const href = $meti(el).attr("href");
         if (!href || !title) return;
