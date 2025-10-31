@@ -29,7 +29,9 @@ function isValidUrl(url: string | null | undefined): boolean {
   }
   try {
     const urlObj = new URL(trimmed);
-    return urlObj.hostname && urlObj.hostname !== "example.com";
+    // hostname は string。左辺にそのまま置くと string | boolean になり型エラーとなるため
+    // 真偽値へ明示的に変換してから比較する
+    return !!urlObj.hostname && urlObj.hostname !== "example.com";
   } catch {
     return false;
   }
