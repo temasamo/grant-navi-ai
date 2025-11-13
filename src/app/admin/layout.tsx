@@ -33,6 +33,7 @@ export default function AdminLayout({
       }
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   const handleLogout = () => {
