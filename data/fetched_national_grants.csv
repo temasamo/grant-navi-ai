@@ -1,6 +1,7 @@
-type,title,description,organization,level,area_prefecture,area_city,industry,target_type,max_amount,subsidy_rate,source_url
-助成金,"各種助成金・奨励金等の制度","厚生労働省公式サイトより取得",厚生労働省,national,全国,,旅館業,法人,,,https://www.mhlw.go.jp/seisakunitsuite/joseikin_shoureikin/index.html
-補助金,"支援策チラシ［補助金/金融/税制/相談窓口/他］","経済産業省（中小企業庁）公式サイトより取得",経済産業省,national,全国,,旅館業,法人,,,https://www.chusho.meti.go.jp/pamflet/support.html
-補助金,"中小企業 人気の補助金","経済産業省（中小企業庁）公式サイトより取得",経済産業省,national,全国,,旅館業,法人,,,https://mirasapo-plus.go.jp/subsidy/
-補助金,"補助金等の公募・申請","経済産業省（中小企業庁）公式サイトより取得",経済産業省,national,全国,,旅館業,法人,,,https://www.chusho.meti.go.jp/koukai/hojyokin/index.html
-補助金,"「小規模事業者持続化補助金＜一般型・災害支援枠＞（9次）」の公募要領を公開しました","経済産業省（中小企業庁）公式サイトより取得",経済産業省,national,全国,,旅館業,法人,,,https://www.chusho.meti.go.jp/koukai/hojyokin/kobo/2025/251028001.html
+type,title,description,organization,level,area_prefecture,area_city,industry,target_type,max_amount,subsidy_rate,url,source_url
+助成金,"各種助成金・奨励金等の制度","厚生労働省公式サイトより取得",厚生労働省,national,全国,,旅館業,法人,,,https://www.mhlw.go.jp/seisakunitsuite/joseikin_shoureikin/index.html,https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/index.html
+補助金,"支援策チラシ［補助金/金融/税制/相談窓口/他］","経済産業省（中小企業庁）公式サイトより取得",経済産業省,national,全国,,旅館業,法人,,,https://www.chusho.meti.go.jp/pamflet/support.html,https://www.chusho.meti.go.jp/
+補助金,"中小企業 人気の補助金","経済産業省（中小企業庁）公式サイトより取得",経済産業省,national,全国,,旅館業,法人,,,https://mirasapo-plus.go.jp/subsidy/,https://www.chusho.meti.go.jp/
+補助金,"補助金等の公募・申請","経済産業省（中小企業庁）公式サイトより取得",経済産業省,national,全国,,旅館業,法人,,,https://www.chusho.meti.go.jp/koukai/hojyokin/index.html,https://www.chusho.meti.go.jp/
+補助金,"令和7年度第2回「伝統的工芸品産業支援補助金（災害復興事業）」の公募について","経済産業省（中小企業庁）公式サイトより取得",経済産業省,national,全国,,旅館業,法人,,,https://www.meti.go.jp/information/publicoffer/kobo/2025/k251113001.html,https://www.chusho.meti.go.jp/
+補助金,"令和6年能登半島地震等「中小企業特定施設等災害復旧費補助金（なりわい再建支援事業）」の交付決定を行いました～石川県の50者を交付決定～","経済産業省（中小企業庁）公式サイトより取得",経済産業省,national,全国,,旅館業,法人,,,https://www.chusho.meti.go.jp/koukai/hojyokin/saitaku/2025/251111001.html,https://www.chusho.meti.go.jp/

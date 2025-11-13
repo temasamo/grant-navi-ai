@@ -194,8 +194,19 @@ export default function GrantsList({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:underline"
+                        title={grant.url}
                       >
-                        リンク
+                        詳細
+                      </a>
+                    ) : grant.source_url ? (
+                      <a
+                        href={grant.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                        title={grant.source_url}
+                      >
+                        一覧
                       </a>
                     ) : (
                       <span className="text-gray-400">-</span>

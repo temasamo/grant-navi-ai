@@ -10,8 +10,8 @@ export default function AdminLoginPage() {
     e.preventDefault();
     
     // 簡単なパスワード認証（本番環境では適切な認証システムを使用してください）
-    // デフォルトパスワード: admin123
-    const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "admin123";
+    // デフォルトパスワード: admin
+    const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "admin";
     
     if (password === adminPassword) {
       // セッションストレージに保存（簡易実装）
@@ -22,7 +22,7 @@ export default function AdminLoginPage() {
         window.location.href = "/admin";
       }
     } else {
-      setError(`パスワードが正しくありません。デフォルトパスワード: admin123`);
+      setError(`パスワードが正しくありません。デフォルトパスワード: admin`);
     }
   };
 
