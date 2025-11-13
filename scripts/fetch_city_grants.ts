@@ -84,6 +84,77 @@ function normalizeUrl(url: string, baseUrl: string): string {
 }
 
 /**
+ * 汎用的なタイトルかどうかを判定
+ */
+function isGenericTitle(title: string): boolean {
+  const trimmed = title.trim();
+  
+  // 短すぎるタイトル（3文字以下）
+  if (trimmed.length <= 3) {
+    return true;
+  }
+  
+  // 汎用的なタイトルパターン
+  const genericPatterns = [
+    /^補助金$/,
+    /^助成金$/,
+    /^支援金$/,
+    /^奨励金$/,
+    /^補助金一覧$/,
+    /^助成金一覧$/,
+    /^支援金一覧$/,
+    /^一覧$/,
+    /^助成金・補助金$/,
+    /^補助金・助成金$/,
+    /^詳しく見る$/,
+    /^続きを読む$/,
+    /^こちら$/,
+    /^詳細$/,
+    /^more$/i,
+    /^link$/i,
+  ];
+  
+  return genericPatterns.some(pattern => pattern.test(trimmed));
+}
+
+/**
+ * 詳細ページからタイトルを取得（h1 > title の順で試す）
+ */
+async function fetchTitleFromDetailPage(url: string): Promise<string | null> {
+  try {
+    const html = await fetchHTML(url);
+    const $ = cheerio.load(html);
+    
+    // 1. h1タグから取得を試みる
+    const h1 = $("h1").first().text().trim();
+    if (h1 && h1.length > 3 && !isGenericTitle(h1)) {
+      return h1;
+    }
+    
+    // 2. titleタグから取得を試みる
+    const title = $("title").text().trim();
+    if (title && title.length > 3 && !isGenericTitle(title)) {
+      // titleタグから不要な部分を除去（例: " | サイト名"）
+      const cleaned = title.split("|")[0].split("｜")[0].trim();
+      if (cleaned.length > 3 && !isGenericTitle(cleaned)) {
+        return cleaned;
+      }
+    }
+    
+    // 3. 見出しタグ（h2, h3）から取得を試みる
+    const headings = $("h2, h3").first().text().trim();
+    if (headings && headings.length > 3 && !isGenericTitle(headings)) {
+      return headings;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error(`  ⚠️  詳細ページの取得失敗: ${url}`, error instanceof Error ? error.message : String(error));
+    return null;
+  }
+}
+
+/**
  * 山形県の主要市町村リストと公式サイトURL
  */
 const YAMAGATA_CITIES = [
@@ -156,6 +227,8 @@ async function fetchCityGrants() {
           const html = await fetchHTML(url);
           const $ = cheerio.load(html);
 
+          // リンクを収集してから処理（非同期処理のため）
+          const links: Array<{ title: string; href: string }> = [];
           $("a").each((_: number, el: any) => {
             const title = $(el).text().trim();
             const href = $(el).attr("href");
@@ -163,32 +236,56 @@ async function fetchCityGrants() {
 
             // 補助金・助成金などのキーワードを含むリンクのみ抽出
             if (keywords.some((kw) => title.includes(kw))) {
-              const fullUrl = normalizeUrl(href, city.baseUrl);
-              
-              // 重複チェック（同じタイトルとURLの組み合わせ）
-              const isDuplicate = results.some(
-                (r) => r.title === title && r.source_url === fullUrl
-              );
-
-              if (!isDuplicate) {
-                results.push({
-                  type: "補助金",
-                  title,
-                  description: `${city.name}の公式サイトより自動取得された補助金・助成金情報です。`,
-                  organization: city.name,
-                  level: "prefecture",
-                  area_prefecture: "山形県",
-                  area_city: city.name,
-                  industry: "旅館業",
-                  target_type: "法人",
-                  max_amount: "",
-                  subsidy_rate: "",
-                  source_url: fullUrl,
-                });
-                found = true;
-              }
+              links.push({ title, href });
             }
           });
+
+          // 各リンクを処理（非同期対応）
+          for (const link of links) {
+            const detailUrl = normalizeUrl(link.href, city.baseUrl); // 詳細ページのURL
+            const listPageUrl = url; // スクレイピングした一覧ページのURL
+            
+            // タイトルが汎用的な場合は詳細ページから取得を試みる
+            let finalTitle = link.title;
+            if (isGenericTitle(link.title)) {
+              console.log(`  🔍 汎用タイトルを検出: "${link.title}" → 詳細ページから取得を試みます`);
+              const detailTitle = await fetchTitleFromDetailPage(detailUrl);
+              if (detailTitle) {
+                finalTitle = detailTitle;
+                console.log(`  ✅ 詳細ページから取得: "${finalTitle}"`);
+              } else {
+                console.log(`  ⚠️  詳細ページからタイトルを取得できませんでした。スキップします。`);
+                continue; // スキップ
+              }
+            }
+            
+            // 重複チェック（同じタイトルとURLの組み合わせ）
+            const isDuplicate = results.some(
+              (r) => r.title === finalTitle && r.url === detailUrl
+            );
+
+            if (!isDuplicate) {
+              results.push({
+                type: "補助金",
+                title: finalTitle,
+                description: `${city.name}の公式サイトより自動取得された補助金・助成金情報です。`,
+                organization: city.name,
+                level: "prefecture",
+                area_prefecture: "山形県",
+                area_city: city.name,
+                industry: "旅館業",
+                target_type: "法人",
+                max_amount: "",
+                subsidy_rate: "",
+                url: detailUrl, // 詳細ページのURL
+                source_url: listPageUrl, // スクレイピングした一覧ページのURL
+              });
+              found = true;
+            }
+            
+            // レート制限対策：少し待機
+            await new Promise((resolve) => setTimeout(resolve, 200));
+          }
 
           // 1つのパスで見つかれば次の市町村に進む（効率化）
           if (found) {
@@ -218,9 +315,9 @@ async function fetchCityGrants() {
     return;
   }
 
-  // CSV出力
+  // CSV出力（urlとsource_urlを分離）
   const header =
-    "type,title,description,organization,level,area_prefecture,area_city,industry,target_type,max_amount,subsidy_rate,source_url\n";
+    "type,title,description,organization,level,area_prefecture,area_city,industry,target_type,max_amount,subsidy_rate,url,source_url\n";
 
   const csv = results
     .map((r) =>
@@ -236,7 +333,8 @@ async function fetchCityGrants() {
         r.target_type,
         r.max_amount,
         r.subsidy_rate,
-        r.source_url,
+        r.url || "", // 詳細ページのURL
+        r.source_url || "", // スクレイピングした一覧ページのURL
       ].join(",")
     )
     .join("\n");
@@ -264,4 +362,9 @@ fetchCityGrants()
     console.error("❌ エラー:", err);
     process.exit(1);
   });
+
+
+
+
+
 

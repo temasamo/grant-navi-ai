@@ -128,16 +128,17 @@ async function syncCsvToSupabase(source: string, fileName: string) {
       const title = rawTitle.replace(/^"+|"+$/g, '').trim(); // 前後のダブルクォートを除去
       const description = r.description || r['description'] || '';
       const organization = r.organization || r['organization'] || '';
-      // URLは source_url, url, link カラムのいずれかから取得（優先順位順）
-      const rawUrl = r.source_url || r.url || r.link || r['source_url'] || r['url'] || r['link'] || '';
       
-      // URLバリデーション（不正なURLは空文字列またはデフォルトURLに）
+      // url（詳細ページのURL）を取得
+      const rawUrl = r.url || r['url'] || r.link || r['link'] || '';
       let validatedUrl = validateUrl(rawUrl, organization);
-      
-      // URLが無効な場合は、組織に基づくデフォルトURLを試す
       if (!validatedUrl && organization) {
         validatedUrl = defaultOrgUrls[organization] || '';
       }
+      
+      // source_url（スクレイピングした一覧ページのURL）を取得
+      const rawSourceUrl = r.source_url || r['source_url'] || '';
+      const validatedSourceUrl = validateUrl(rawSourceUrl, organization);
       
       // バリデーション結果をログ出力（デバッグ用）
       if (rawUrl && !validatedUrl) {
@@ -152,7 +153,8 @@ async function syncCsvToSupabase(source: string, fileName: string) {
         description: description || '',
         organization: organization || '',
         url: validatedUrl,
-        created_at: new Date().toISOString(),
+        source_url: validatedSourceUrl,
+        // created_atとupdated_atは後で設定（既存レコードの場合はcreated_atを保持）
         // 既存スキーマ互換のために維持
         level: source === 'national' ? 'national' : 'prefecture',
         area_prefecture: source === 'yamagata' ? (r.area_prefecture || r['area_prefecture'] || '山形県') : '',
@@ -179,22 +181,58 @@ async function syncCsvToSupabase(source: string, fileName: string) {
     const titles = uniqueFormatted.map((f) => f.title);
     const { data: existingGrants } = await supabase
       .from("grants")
-      .select("title")
+      .select("id, title, created_at, source_url")
       .in("title", titles);
     
-    // 既存タイトルも正規化して比較（ダブルクォート除去）
-    const existingTitles = new Set(
-      (existingGrants || []).map((g) => (g.title || '').replace(/^"+|"+$/g, '').trim())
-    );
-    const newRecordsCount = uniqueFormatted.filter(
-      (f) => !existingTitles.has(f.title)
+    // 既存タイトルとcreated_at、source_urlをマッピング
+    const existingTitlesMap = new Map<string, { created_at: string; source_url: string | null }>();
+    const existingTitles = new Set<string>();
+    (existingGrants || []).forEach((g) => {
+      const normalizedTitle = (g.title || '').replace(/^"+|"+$/g, '').trim();
+      existingTitles.add(normalizedTitle);
+      if (g.created_at) {
+        existingTitlesMap.set(normalizedTitle, {
+          created_at: g.created_at,
+          source_url: g.source_url || null,
+        });
+      }
+    });
+
+    // 既存レコードの場合はcreated_atとsource_urlを保持、新規の場合は現在時刻を設定
+    const finalFormatted = uniqueFormatted.map((f) => {
+      const normalizedTitle = f.title.replace(/^"+|"+$/g, '').trim();
+      const isExisting = existingTitles.has(normalizedTitle);
+      
+      if (isExisting && existingTitlesMap.has(normalizedTitle)) {
+        // 既存レコード: created_atとsource_urlを保持、updated_atのみ更新
+        const existing = existingTitlesMap.get(normalizedTitle)!;
+        return {
+          ...f,
+          created_at: existing.created_at,
+          // source_urlが既存データでNULLの場合、新しいデータにsource_urlがあれば更新、なければNULLを保持
+          source_url: f.source_url || existing.source_url || null,
+          updated_at: new Date().toISOString(),
+        };
+      } else {
+        // 新規レコード: created_atとupdated_atを現在時刻に設定
+        const now = new Date().toISOString();
+        return {
+          ...f,
+          created_at: now,
+          updated_at: now,
+        };
+      }
+    });
+
+    const newRecordsCount = finalFormatted.filter(
+      (f) => !existingTitles.has(f.title.replace(/^"+|"+$/g, '').trim())
     ).length;
-    const updatedRecordsCount = uniqueFormatted.length - newRecordsCount;
+    const updatedRecordsCount = finalFormatted.length - newRecordsCount;
 
     // ✅ 重複をスキップ（title重複時に上書きor無視）
     const { error } = await supabase
       .from("grants")
-      .upsert(uniqueFormatted, { onConflict: "title" });
+      .upsert(finalFormatted, { onConflict: "title" });
 
     if (error) throw error;
 
