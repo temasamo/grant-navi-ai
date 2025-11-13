@@ -55,3 +55,8 @@ async function checkCityUrls() {
 
 checkCityUrls().catch(console.error);
 
+
+
+
+
+

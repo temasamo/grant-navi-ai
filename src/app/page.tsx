@@ -85,6 +85,13 @@ export default async function HomePage() {
           >
             AI診断を始める（地域×業種検索） →
           </Link>
+
+          <Link
+            href="/admin/login"
+            className="inline-block rounded-lg bg-gray-600 px-6 py-3 text-white font-medium hover:bg-gray-700 transition w-full text-center"
+          >
+            🔐 管理画面へ
+          </Link>
         </div>
       </div>
     </main>

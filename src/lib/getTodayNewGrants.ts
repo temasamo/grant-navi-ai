@@ -23,6 +23,7 @@ type RawGrant = {
   title: string;
   level: string | null;
   area_prefecture: string | null;
+  area_city: string | null;
   created_at: string;
   url: string | null;
 };
@@ -45,7 +46,7 @@ export async function getTodayNewGrants(): Promise<NewGrant[]> {
 
     const { data, error } = await supabase
       .from("grants")
-      .select("id, title, level, area_prefecture, created_at, url")
+      .select("id, title, level, area_prefecture, area_city, created_at, url")
       .gte("created_at", utcStartIso)
       .lte("created_at", utcEndIso)
       .order("created_at", { ascending: false })
@@ -65,6 +66,20 @@ export async function getTodayNewGrants(): Promise<NewGrant[]> {
     const rows: RawGrant[] = Array.isArray(data) ? (data as RawGrant[]) : [];
     const withLabel: NewGrant[] = rows.map((g: RawGrant) => {
       const cleanedUrl = typeof g.url === "string" ? g.url.replace(/^"+|"+$/g, "") : null;
+      
+      // ラベル生成ロジック
+      let label = "";
+      if (g.level === "national") {
+        // 1. 国の補助金の場合：「全国」
+        label = "全国";
+      } else if (g.area_city && g.area_city.trim() !== "") {
+        // 3. 市区町村の補助金の場合：「都道府県名/市区町村名」
+        label = `${g.area_prefecture || ""}/${g.area_city}`;
+      } else {
+        // 2. 県の補助金の場合：「都道府県名」
+        label = g.area_prefecture || "都道府県";
+      }
+      
       return {
         id: g.id,
         title: g.title,
@@ -72,7 +87,7 @@ export async function getTodayNewGrants(): Promise<NewGrant[]> {
         area_prefecture: g.area_prefecture,
         updated_at: g.created_at,
         url: cleanedUrl,
-        label: g.level === "national" ? "national" : g.area_prefecture || "prefecture",
+        label: label,
       };
     });
 

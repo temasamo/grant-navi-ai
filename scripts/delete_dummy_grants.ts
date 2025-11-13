@@ -95,3 +95,8 @@ main().catch((e) => {
   console.error("❌ エラー:", e.message || e);
   process.exit(1);
 });
+
+
+
+
+

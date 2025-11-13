@@ -148,6 +148,17 @@ async function syncCsvToSupabase(source: string, fileName: string) {
       // area_cityフィールドを読み込む
       const areaCity = r.area_city || r['area_city'] || '';
       
+      // typeフィールドを取得（CSVから、またはタイトルから自動判定）
+      let grantType = r.type || r['type'] || '';
+      if (!grantType) {
+        // タイトルから自動判定
+        if (title.includes('助成金') || title.includes('支援金') || title.includes('奨励金')) {
+          grantType = '助成金';
+        } else {
+          grantType = '補助金';
+        }
+      }
+      
       return {
         title: title || '',
         description: description || '',
@@ -161,7 +172,7 @@ async function syncCsvToSupabase(source: string, fileName: string) {
         area_city: areaCity, // 市町村データ用
         industry: '旅館業',
         target_type: '法人',
-        type: '補助金',
+        type: grantType,
       };
     });
 
