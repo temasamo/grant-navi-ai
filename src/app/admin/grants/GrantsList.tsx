@@ -47,7 +47,9 @@ export default function GrantsList({
             <select
               value={filters.level || ""}
               onChange={(e) =>
-                updateFilters({ level: e.target.value as any || null })
+                updateFilters({ 
+                  level: (e.target.value || null) as "national" | "prefecture" | "city" | null 
+                })
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
@@ -66,7 +68,9 @@ export default function GrantsList({
             <select
               value={filters.type || ""}
               onChange={(e) =>
-                updateFilters({ type: e.target.value as any || null })
+                updateFilters({ 
+                  type: (e.target.value || null) as "補助金" | "助成金" | null 
+                })
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >

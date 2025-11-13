@@ -1,4 +1,4 @@
-import { getAdminGrants, type GrantFilters, type AdminGrant } from "@/lib/getAdminGrants";
+import { getAdminGrants, type GrantFilters } from "@/lib/getAdminGrants";
 import GrantsList from "./GrantsList";
 
 type SearchParams = {
